@@ -1,0 +1,41 @@
+<div class="prompt-logger-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Prompt Logger</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="prompt-logger-block flex-container">
+                <label>Log Components:</label>
+                <div class="checkbox-list">
+                    <input id="log_prompt" type="checkbox" checked />
+                    <label for="log_prompt">Final Prompt</label>
+                    
+                    <input id="log_history" type="checkbox" checked />
+                    <label for="log_history">Chat History</label>
+                    
+                    <input id="log_context" type="checkbox" checked />
+                    <label for="log_context">Context Info</label>
+                </div>
+            </div>
+
+            <div class="prompt-logger-block flex-container">
+                <div class="log-controls">
+                    <input id="view_logs" class="menu_button" type="submit" value="View Logs" />
+                    <input id="clear_logs" class="menu_button" type="submit" value="Clear Logs" />
+                    <input id="export_logs" class="menu_button" type="submit" value="Export Logs" />
+                </div>
+            </div>
+
+            <div id="log_viewer" class="prompt-logger-block flex-container" style="display: none;">
+                <div class="log-viewer-header">
+                    <h4>Log Viewer</h4>
+                    <span class="close-viewer">&times;</span>
+                </div>
+                <pre id="log_content" class="log-content"></pre>
+            </div>
+
+            <hr class="sysHR" />
+        </div>
+    </div>
+</div>

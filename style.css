@@ -1,0 +1,58 @@
+.prompt-logger-block {
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+    padding-left: 15px;
+}
+
+.checkbox-list input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.log-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.log-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    background-color: var(--black-50);
+    border-radius: 5px 5px 0 0;
+}
+
+.log-viewer-header h4 {
+    margin: 0;
+}
+
+.close-viewer {
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0 5px;
+}
+
+.log-content {
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: var(--black-25);
+    border: 1px solid var(--black-50);
+    border-radius: 0 0 5px 5px;
+    padding: 10px;
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+#log_viewer {
+    width: 100%;
+}
