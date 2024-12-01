@@ -37,9 +37,35 @@ function onSettingInput(event) {
     saveSettingsDebounced();
 }
 
+// Helper function to make authenticated API requests
+async function makeRequest(endpoint, method, body) {
+    try {
+        const response = await fetch(endpoint, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`API request failed: ${response.status} ${response.statusText}\n${text}`);
+        }
+
+        return response;
+    } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+    }
+}
+
 // Log information to file
 async function logToFile(data) {
     try {
+        console.debug('Attempting to log data:', data);
+        
         const context = getContext();
         const logEntry = {
             timestamp: new Date().toISOString(),
@@ -47,12 +73,12 @@ async function logToFile(data) {
             data: {}
         };
 
-        if (extensionSettings.logPrompt && data.finalPrompt) {
-            logEntry.data.finalPrompt = data.finalPrompt;
+        if (extensionSettings.logPrompt && data.prompt) {
+            logEntry.data.prompt = data.prompt;
         }
 
-        if (extensionSettings.logHistory && data.messageHistory) {
-            logEntry.data.messageHistory = data.messageHistory;
+        if (extensionSettings.logHistory) {
+            logEntry.data.messageHistory = context.chat;
         }
 
         if (extensionSettings.logContext) {
@@ -64,32 +90,26 @@ async function logToFile(data) {
             };
         }
 
-        // Create logs directory if it doesn't exist
+        // Create logs directory
         try {
-            await fetch('/api/mkdir', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ path: 'logs' })
+            await makeRequest('/writeFile', 'POST', {
+                path: 'logs',
+                type: 'directory'
             });
         } catch (error) {
             console.warn('Failed to create logs directory:', error);
+            // Continue anyway as directory might already exist
         }
 
         // Append to log file
         const logLine = JSON.stringify(logEntry) + '\n';
-        await fetch('/api/write', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                path: logFilePath,
-                content: logLine,
-                append: true
-            })
+        await makeRequest('/writeFile', 'POST', {
+            path: logFilePath,
+            content: logLine,
+            append: true
         });
+
+        console.debug('Successfully logged data');
     } catch (error) {
         console.error('Failed to log prompt data:', error);
         toastr.error('Failed to log prompt data. Check console for details.');
@@ -99,12 +119,8 @@ async function logToFile(data) {
 // View logs
 async function viewLogs() {
     try {
-        const response = await fetch('/api/read', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ path: logFilePath })
+        const response = await makeRequest('/readFile', 'POST', {
+            path: logFilePath
         });
         
         const logContent = await response.text();
@@ -137,15 +153,9 @@ async function viewLogs() {
 // Clear logs
 async function clearLogs() {
     try {
-        await fetch('/api/write', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                path: logFilePath,
-                content: ''
-            })
+        await makeRequest('/writeFile', 'POST', {
+            path: logFilePath,
+            content: ''
         });
         $('#log_content').text('No logs found.');
         toastr.success('Logs cleared successfully');
@@ -158,12 +168,8 @@ async function clearLogs() {
 // Export logs
 async function exportLogs() {
     try {
-        const response = await fetch('/api/read', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ path: logFilePath })
+        const response = await makeRequest('/readFile', 'POST', {
+            path: logFilePath
         });
         
         const logContent = await response.text();
@@ -204,8 +210,9 @@ jQuery(async () => {
     $("#export_logs").on("click", exportLogs);
     $(".close-viewer").on("click", () => $("#log_viewer").hide());
 
-    // Listen for chat completion events
-    eventSource.on(event_types.CHAT_COMPLETION_RESPONSE, async (data) => {
+    // Listen for message events
+    eventSource.on(event_types.MESSAGE_SENT, async (data) => {
+        console.debug('Message sent event:', data);
         if (data && (extensionSettings.logPrompt || extensionSettings.logHistory || extensionSettings.logContext)) {
             await logToFile(data);
         }
