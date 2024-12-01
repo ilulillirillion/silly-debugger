@@ -1,9 +1,8 @@
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { saveSettingsDebounced } from "../../../../script.js";
 import { eventSource, event_types } from "../../../../script.js";
-import { writeFile, readFile } from "../../../../utils.js";
 
-const extensionName = "prompt-logger";
+const extensionName = "silly-debugger";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const logFilePath = 'logs/prompt_logs.jsonl';
 
@@ -65,9 +64,32 @@ async function logToFile(data) {
             };
         }
 
+        // Create logs directory if it doesn't exist
+        try {
+            await fetch('/api/mkdir', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ path: 'logs' })
+            });
+        } catch (error) {
+            console.warn('Failed to create logs directory:', error);
+        }
+
         // Append to log file
         const logLine = JSON.stringify(logEntry) + '\n';
-        await writeFile(logFilePath, logLine, true);
+        await fetch('/api/write', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                path: logFilePath,
+                content: logLine,
+                append: true
+            })
+        });
     } catch (error) {
         console.error('Failed to log prompt data:', error);
         toastr.error('Failed to log prompt data. Check console for details.');
@@ -77,7 +99,16 @@ async function logToFile(data) {
 // View logs
 async function viewLogs() {
     try {
-        const logContent = await readFile(logFilePath);
+        const response = await fetch('/api/read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ path: logFilePath })
+        });
+        
+        const logContent = await response.text();
+        
         if (!logContent) {
             $('#log_content').text('No logs found.');
         } else {
@@ -106,7 +137,16 @@ async function viewLogs() {
 // Clear logs
 async function clearLogs() {
     try {
-        await writeFile(logFilePath, '');
+        await fetch('/api/write', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                path: logFilePath,
+                content: ''
+            })
+        });
         $('#log_content').text('No logs found.');
         toastr.success('Logs cleared successfully');
     } catch (error) {
@@ -118,7 +158,16 @@ async function clearLogs() {
 // Export logs
 async function exportLogs() {
     try {
-        const logContent = await readFile(logFilePath);
+        const response = await fetch('/api/read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ path: logFilePath })
+        });
+        
+        const logContent = await response.text();
+        
         if (!logContent) {
             toastr.info('No logs to export');
             return;
@@ -161,4 +210,6 @@ jQuery(async () => {
             await logToFile(data);
         }
     });
+
+    console.log('Prompt Logger extension initialized');
 });
